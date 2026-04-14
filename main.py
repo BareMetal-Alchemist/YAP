@@ -11,6 +11,55 @@ r = sr.Recognizer()
 
 text = ""
 
+# State Machine
+class StateMachine:
+    def __init__(self):
+
+        self.state = "Idle"
+        self.stateTransition = {
+            "Idle": {
+                "wake": "Listening",
+            },
+            "Listening": {
+                "heardInput": "Thinking",
+                "InputFailed": "Listening",
+                "timeout": "Idle",
+                "cancel": "Idle",
+            },
+            "Thinking": {
+                "responseReady": "Speaking",
+                "error": "Idle",
+            },
+            "Speaking": {
+                "done": "Idle",
+                "interupted": "Listening",
+                "follow_up": "Listening",
+            },
+        }
+
+    def changeState(self, event):
+        stateEvents = self.stateTransition.get(self.state, {})
+
+        if event not in stateEvents:
+            raise ValueError(f"Event {event!r} is not a valid for state {self.state!r}")
+
+        self.state = stateEvents[event]
+        return self.state
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 while not text == "bye":
     print("Say something!")
     with sr.Microphone() as source:
@@ -19,7 +68,7 @@ while not text == "bye":
 
     try:
         text = r.recognize_google(audio)
-        print(f"You said: {text}")
+        print(f"You said: {text}")  
     except sr.UnknownValueError:
         print("Could not understand audio")
         engine.say("Could not understand audio")
@@ -39,7 +88,7 @@ while not text == "bye":
         break
     prompt = f"{text}.\n\n(Please keep responses no longer than 2 sentences)"
     response = ollama.chat(
-        model="llama3.2",
+        model="gemma3",
         messages=[{"role": "user", "content": prompt}],
         options={"num_predict": 50},
     )
